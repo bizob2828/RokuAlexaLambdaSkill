@@ -1,5 +1,15 @@
 //This keeps a list of Roku channels and their id's. Format: "spoken channel name": "12345"
 channels = {
+    "travel channel": "75636",
+    "hgtv": "75619",
+    "h g t v": "75619",
+    "spotify": "19977",
+    "diy": "85700",
+    "d i y": "85700",
+    "d eye y": "85700",
+    "e s p n": "34376",
+    "espn": "34376",
+    "e s pee n": "34376",
     "fx": "47389",
     "eff x": "47389",
     "fx now": "47389",

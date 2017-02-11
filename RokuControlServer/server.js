@@ -1,18 +1,17 @@
-var serverinfo = require("./serverinfo");
-var rokuChannel = require("./rokuchannels");
-var http = require('http');
-var fs = require('fs');
-var urllib = require("url");
-var Client = require('node-ssdp').Client;
-var dgram = require('dgram');
-var ssdp = new Client();
-
-var keyDelay = 100; //typing delay in ms. If you have a faster roku, you can probably reduce this, slower ones may have to increase it.
+'use strict';
+const serverinfo = require("./serverinfo");
+const rokuChannel = require("./rokuchannels");
+const http = require('http');
+const fs = require('fs');
+const urllib = require("url");
+const Client = require('node-ssdp').Client;
+const dgram = require('dgram');
+const ssdp = new Client();
+const keyDelay = 100; //typing delay in ms. If you have a faster roku, you can probably reduce this, slower ones may have to increase it.
 
 //null will cause the server to discover the Roku on startup, hard coding a value will allow for faster startups
 // When manually setting this, include the protocol, port, and trailing slash eg:
-// exports.rokuAddress = "http://192.168.1.100:8060/";
-var rokuAddress = null;
+var rokuAddress=process.env.ROKU_ROOT;
 
 //handle the ssdp response when the roku is found
 ssdp.on('response', function (headers, statusCode, rinfo) {
@@ -105,6 +104,7 @@ function generateRepeatedKeyResponse(key,count) {
 //depending on the URL endpoint accessed, we use a different handler.
 //This is almost certainly not the optimal way to build a TCP server, but for our simple example, it is more than sufficient
 var handlers = {
+    "/roku/home":generateRepeatedKeyResponse("keypress/home",1),
     "/roku/playlast":function(request,response) {
         postSequence([
             rokuAddress+"keypress/home",    //wake the roku up, if its not already
@@ -377,6 +377,40 @@ var handlers = {
 
         });
         response.end("OK");
+    },
+    "/roku/watch/espn":function(request,response) {
+        getRequestData(request,function(data) {
+		postSequence([
+		rokuAddress + "launch/" + rokuChannel["espn"],
+		5000,
+		rokuAddress+"keypress/select",
+		1000,
+		rokuAddress+"keypress/select"
+		], function () {
+		});
+		response.end("OK");
+        });
+        response.end("OK");     //respond with OK before the operation finishes
+
+    },
+    "/roku/watch":function(request,response) {
+        getRequestData(request,function(data) {
+            var channelRequest = data.replace().toLowerCase();
+            console.log("Loading Channel: " + channelRequest);
+            if (rokuChannel[channelRequest]) {
+                postSequence([rokuAddress + "launch/" + rokuChannel[channelRequest],
+                5000,
+                rokuAddress+"keypress/select"
+                ], function () {
+                });
+                response.end("OK");
+            } else {
+                console.log('Channel not found.');
+                response.end("Channel not found.");
+            }
+        });
+        response.end("OK");     //respond with OK before the operation finishes
+
     },
     "/roku/launch":function(request,response) {  //function to open a roku channel from the channel list
         getRequestData(request,function(data) {
